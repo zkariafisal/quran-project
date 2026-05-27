@@ -1,18 +1,29 @@
 @import '../../styles/variables.scss';
 
-.link{
+.link {
   display: inline-block;
-  width: 30%;
+  width: 180px;          /* عرض ثابت بدلاً من 30% */
   margin-top: 35px;
+  transition: transform 0.3s ease; /* تأثير عند المرور */
 }
-.logo{
+
+.link:hover {
+  transform: scale(1.05); /* تكبير بسيط عند المرور */
+}
+
+.logo {
   padding-top: 10px;
   padding-bottom: 10px;
   height: auto;
   width: 100%;
+  border-radius: 50%;    /* جعل الصورة دائرية (لأن صورتك مستديرة) */
+  object-fit: cover;     /* تغطية المساحة بشكل مناسب */
+  background-color: rgba(255,255,255,0.1); /* خلفية شفافة في حالة وجود مساحة فارغة */
 }
-.title{
+
+.title {
   color: lighten($brand-primary, 30%);
   font-size: 160%;
   padding-bottom: 3.5%;
+  letter-spacing: 2px;   /* تباعد بسيط بين الحروف */
 }

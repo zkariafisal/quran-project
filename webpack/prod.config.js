@@ -19,9 +19,7 @@ const root = path.resolve(__dirname, '..');
 module.exports = {
   output: {
     path: assetsPath,
-    publicPath: process.env.USE_LOCAL_ASSETS
-      ? '/public/'
-      : '/static/dist/',
+    publicPath: '/static/dist/',
     filename: '[name]-[hash].js',
     chunkFilename: '[name]-[chunkhash]-chunk.js',
     sourceMapFilename: '[name]-[chunkhash].map.js'
@@ -100,9 +98,11 @@ module.exports = {
             {
               loader: 'sass-loader',
               options: {
-                outputStyle: 'compressed',
-                sourceMap: true,
-                sourceMapContents: true
+                implementation: require('sass'),
+                sassOptions: {
+                  outputStyle: 'compressed',
+                  sourceMap: true
+                }
               }
             }
           ]

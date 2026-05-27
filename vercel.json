@@ -8,6 +8,10 @@
       "config": {
         "distDir": "static/dist"
       }
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -16,8 +20,12 @@
       "dest": "/static/$1"
     },
     {
+      "src": "/",
+      "dest": "/index.html"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/static/dist/index.html"
+      "dest": "/static/dist/$1"
     }
   ]
 }

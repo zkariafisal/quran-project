@@ -5,7 +5,6 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const CleanPlugin = require('clean-webpack-plugin');
 const IsomorphicPlugin = require('webpack-isomorphic-tools/plugin');
 const strip = require('strip-loader');
-const BabiliPlugin = require('babili-webpack-plugin');
 
 const isomorphicToolsConfig = require('./isomorphic-tools-configuration');
 
@@ -22,7 +21,7 @@ module.exports = {
     path: assetsPath,
     publicPath: process.env.USE_LOCAL_ASSETS
       ? '/public/'
-      : '//assets-1f14.kxcdn.com/',
+      : '/static/dist/',
     filename: '[name]-[hash].js',
     chunkFilename: '[name]-[chunkhash]-chunk.js',
     sourceMapFilename: '[name]-[chunkhash].map.js'
@@ -45,8 +44,8 @@ module.exports = {
   },
   module: {
     rules: [
-      { test: /\.css$/, loader: 'style!css' },
-      { test: /\.json$/, loader: 'json' },
+      { test: /\.css$/, use: ['style-loader', 'css-loader'] },
+      { test: /\.json$/, loader: 'json-loader' },
       {
         test: /\.js$/,
         exclude: /node_modules/,
@@ -64,7 +63,6 @@ module.exports = {
               ],
               plugins: [
                 'transform-runtime',
-                // 'add-module-exports',
                 'transform-decorators-legacy',
                 'transform-react-display-name',
                 'syntax-dynamic-import'
@@ -75,35 +73,39 @@ module.exports = {
       },
       {
         test: /\.scss$/,
-        loader: ExtractTextPlugin.extract({
-          fallbackLoader: 'style-loader',
-          //   loader: [
-          //     {
-          //       loader: 'css-loader',
-          //       options: {
-          //         modules: true,
-          //         importLoaders: 2,
-          //         sourceMap: true,
-          //         minimize: true,
-          //         localIdentName: '[path][name]__[local]--[hash:base64:5]'
-          //       }
-          //     },
-          //     {
-          //       loader: 'postcss-loader',
-          //       options: {
-          //         sourceMap: 'inline',
-          //         plugins() {
-          //           return [
-          //             require('precss'), // eslint-disable-line
-          //             require('autoprefixer'), // eslint-disable-line
-          //             require('cssnano'), // eslint-disable-line
-          //           ];
-          //         }
-          //       }
-          //     },
-          //     'sass-loader?sourceMap&sourceMapContents'
-          //   ]
-          loader: 'css-loader?minimize&modules&importLoaders=2&sourceMap!autoprefixer-loader?browsers=last 2 version!sass-loader?outputStyle=compressed&sourceMap=true&sourceMapContents=true' // eslint-disable-line max-len
+        use: ExtractTextPlugin.extract({
+          fallback: 'style-loader',
+          use: [
+            {
+              loader: 'css-loader',
+              options: {
+                minimize: true,
+                modules: true,
+                importLoaders: 2,
+                sourceMap: true,
+                localIdentName: '[path][name]__[local]--[hash:base64:5]'
+              }
+            },
+            {
+              loader: 'postcss-loader',
+              options: {
+                sourceMap: true,
+                plugins: () => [
+                  require('precss'),
+                  require('autoprefixer'),
+                  require('cssnano')
+                ]
+              }
+            },
+            {
+              loader: 'sass-loader',
+              options: {
+                outputStyle: 'compressed',
+                sourceMap: true,
+                sourceMapContents: true
+              }
+            }
+          ]
         })
       },
       {
@@ -131,13 +133,17 @@ module.exports = {
         loader: 'url-loader?name=images/[name].[ext]&limit=10000&mimetype=image/svg+xml'
       },
       {
+        test: /\.(png|jpg|jpeg|gif)$/,
+        loader: 'url-loader?name=images/[name].[ext]&limit=10240'
+      },
+      {
         test: webpackIsomorphicToolsPlugin.regular_expression('images'),
         loader: 'url-loader?name=images/[name].[ext]&limit=10240'
       }
     ]
   },
   plugins: [
-    new CleanPlugin([relativeAssetsPath]),
+    new CleanPlugin([relativeAssetsPath], { allowExternal: true }),
     new webpack.NoEmitOnErrorsPlugin(),
     new webpack.ProvidePlugin({
       $: 'jquery',
@@ -146,21 +152,13 @@ module.exports = {
     }),
     new webpack.DefinePlugin({
       'process.env.BROWSER': true,
-      'process.env.API_URL': JSON.stringify(process.env.API_URL),
-      'process.env.SEGMENTS_KEY': JSON.stringify(process.env.SEGMENTS_KEY),
-      'process.env.SENTRY_KEY_CLIENT': JSON.stringify(
-        process.env.SENTRY_KEY_CLIENT
-      ),
-      'process.env.SENTRY_KEY_SERVER': JSON.stringify(
-        process.env.SENTRY_KEY_SERVER
-      ),
-      'process.env.FACEBOOK_APP_ID': JSON.stringify(
-        process.env.FACEBOOK_APP_ID
-      ),
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-      'process.env': {
-        NODE_ENV: JSON.stringify('production') // for reach
-      },
+      'process.env.API_URL': JSON.stringify(process.env.API_URL || 'https://api.quran.com'),
+      'process.env.ONE_QURAN_URL': JSON.stringify(process.env.ONE_QURAN_URL || 'https://one.quran.com'),
+      'process.env.SEGMENTS_KEY': JSON.stringify(process.env.SEGMENTS_KEY || ''),
+      'process.env.SENTRY_KEY_CLIENT': JSON.stringify(process.env.SENTRY_KEY_CLIENT || ''),
+      'process.env.SENTRY_KEY_SERVER': JSON.stringify(process.env.SENTRY_KEY_SERVER || ''),
+      'process.env.FACEBOOK_APP_ID': JSON.stringify(process.env.FACEBOOK_APP_ID || ''),
+      'process.env.NODE_ENV': JSON.stringify('production'),
       __SERVER__: false,
       __CLIENT__: true,
       __DEVELOPMENT__: false,
@@ -168,20 +166,17 @@ module.exports = {
     }),
     new webpack.EnvironmentPlugin(['NODE_ENV']),
     new ExtractTextPlugin({ filename: '[name]-[hash].css', allChunks: true }),
-
-    // Optimizations
     new webpack.optimize.AggressiveMergingPlugin(),
     new webpack.optimize.UglifyJsPlugin({
       compress: {
         warnings: false
       },
-      minimize: true
-    }),
-
-    new webpack.LoaderOptionsPlugin({
-      test: /\.css$/, // optionally pass test, include and exclude, default affects all loaders
       minimize: true,
-      debug: true
+      sourceMap: true
+    }),
+    new webpack.LoaderOptionsPlugin({
+      minimize: true,
+      debug: false
     }),
     new CompressionPlugin({
       asset: '[path].gz[query]',
@@ -190,10 +185,6 @@ module.exports = {
       threshold: 10240,
       minRatio: 0
     }),
-    /**
-     * Babli is an ES6+ aware minifier based on the Babel toolchain (beta)
-     */
-    new BabiliPlugin(),
     webpackIsomorphicToolsPlugin
   ]
 };
